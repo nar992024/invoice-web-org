@@ -14,6 +14,9 @@ import { toast } from 'sonner'
 import { ERROR_MESSAGES } from '@/lib/constants'
 import { sanitizeFilename } from '@/lib/format'
 
+/** 다운로드가 시작될 시간을 확보한 뒤 Blob URL을 해제하기까지의 대기 시간 */
+const BLOB_URL_REVOKE_DELAY_MS = 10_000
+
 interface PDFDownloadButtonProps {
   /** 견적서 데이터 */
   invoice: Invoice
@@ -58,12 +61,17 @@ export function PDFDownloadButton({
       const a = document.createElement('a')
       a.href = url
       a.download = `invoice-${sanitizeFilename(invoice.invoiceNumber)}.pdf`
+      // 일부 브라우저는 문서에 연결되지 않은 링크의 다운로드를 무시한다
+      document.body.appendChild(a)
       a.click()
+      a.remove()
 
       // 5단계: 리소스 정리
-      URL.revokeObjectURL(url)
+      // 즉시 해제하면 브라우저가 파일을 읽기 전에 다운로드가 취소될 수 있다
+      setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS)
 
-      toast.success('PDF 다운로드가 완료되었습니다')
+      // 브라우저는 저장 완료 여부를 알려주지 않으므로 시작까지만 안내한다
+      toast.success('PDF 다운로드를 시작했습니다')
     } catch (error) {
       console.error(ERROR_MESSAGES.PDF_GENERATION_ERROR, error)
       toast.error(ERROR_MESSAGES.PDF_GENERATION_ERROR)
