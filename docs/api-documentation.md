@@ -65,7 +65,7 @@ ADMIN_PASSWORD=your-strong-password-here
 - **생성 방법**:
 
 ```bash
-openssl rand -base64 32
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
 ```
 
 **예시**:

@@ -26,7 +26,7 @@
 - [ ] 관리자 비밀번호 기본값 아님 확인
   - ❌ 금지: `admin1234`, `admin123`, `password`
 - [ ] SESSION_SECRET 새로 생성
-  - 생성 명령어: `openssl rand -base64 32`
+  - 생성 명령어: `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`
 - [ ] `.env.local` 파일이 `.gitignore`에 포함되어 있음
 - [ ] 민감한 정보가 코드에 하드코딩되지 않음
 
