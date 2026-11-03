@@ -51,8 +51,9 @@ export default function InvoiceError({
                 {/* 에러 메시지 */}
                 <div className="bg-destructive/10 rounded-lg p-4">
                   <p className="text-sm font-medium">오류 내용:</p>
+                  {/* 프로덕션의 error.message는 Next.js가 영문 기술 문구로 대체하므로 고객에게 노출하지 않는다 */}
                   <p className="text-muted-foreground mt-1 text-sm">
-                    {error.message || '알 수 없는 오류가 발생했습니다.'}
+                    일시적인 문제로 견적서를 불러오지 못했습니다.
                   </p>
                   {error.digest && (
                     <p className="text-muted-foreground mt-2 text-xs">

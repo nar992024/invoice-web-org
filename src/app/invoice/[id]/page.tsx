@@ -4,11 +4,12 @@ import { InvoiceClientInfo } from '@/components/invoice/InvoiceClientInfo'
 import { InvoiceTable } from '@/components/invoice/InvoiceTable'
 import { InvoiceSummary } from '@/components/invoice/InvoiceSummary'
 import { PDFDownloadButton } from '@/components/invoice/PDFDownloadButton'
-import { InvoiceSkeleton } from '@/components/invoice/InvoiceSkeleton'
-import { getOptimizedInvoice } from '@/lib/services/invoice.service'
+import {
+  getOptimizedInvoice,
+  isInvoiceNotFoundError,
+} from '@/lib/services/invoice.service'
 import { notFound } from 'next/navigation'
 import { Separator } from '@/components/ui/separator'
-import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { formatCurrency } from '@/lib/format'
 
@@ -48,26 +49,21 @@ export async function generateMetadata({
 }
 
 /**
- * 견적서 콘텐츠 컴포넌트 (Async Server Component)
+ * 견적서 페이지
  *
- * 데이터 페칭 로직을 분리하여 Suspense 경계 내에서 실행되도록 함
- * 이를 통해 점진적 로딩과 스켈레톤 UI를 제공
+ * 응답을 보내기 전에 데이터를 조회해야 없는 견적서에 HTTP 404를 반환할 수 있다.
+ * loading.tsx나 Suspense로 스트리밍을 시작하면 상태 코드가 200으로 확정되므로 사용하지 않는다.
  */
-async function InvoiceContent({ id }: { id: string }) {
-  // 최적화된 견적서 조회 (캐싱 + Request Deduplication)
-  let invoiceData
-  try {
-    invoiceData = await getOptimizedInvoice(id)
-  } catch (error) {
-    console.error('견적서 조회 실패:', error)
-    // 에러 발생 시 404 페이지로 리다이렉트
-    notFound()
-  }
+export default async function InvoicePage({ params }: InvoicePageProps) {
+  const { id } = await params
 
-  // 견적서를 찾을 수 없는 경우 (이 부분은 실제로는 try-catch에서 처리됨)
-  if (!invoiceData) {
-    notFound()
-  }
+  const invoiceData = await getOptimizedInvoice(id).catch((error: unknown) => {
+    if (isInvoiceNotFoundError(error)) {
+      notFound()
+    }
+    // Notion 장애 등은 링크 문제가 아니므로 error.tsx에서 안내한다
+    throw error
+  })
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -116,22 +112,5 @@ async function InvoiceContent({ id }: { id: string }) {
       </main>
       <Footer />
     </div>
-  )
-}
-
-/**
- * 견적서 페이지
- *
- * Suspense를 사용하여 점진적 로딩을 구현
- * 데이터 로딩 중에는 InvoiceSkeleton을 표시하고,
- * 로딩 완료 후 실제 견적서 콘텐츠를 렌더링
- */
-export default async function InvoicePage({ params }: InvoicePageProps) {
-  const { id } = await params
-
-  return (
-    <Suspense fallback={<InvoiceSkeleton />}>
-      <InvoiceContent id={id} />
-    </Suspense>
   )
 }

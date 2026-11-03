@@ -17,6 +17,23 @@ import type {
 import { isInvoicePage, isItemPage } from '@/types/notion'
 import type { GetPageResponse } from '@notionhq/client/build/src/api-endpoints'
 
+/** Notion 페이지 ID 형식: 하이픈 유무와 관계없는 32자리 16진수 UUID */
+const NOTION_PAGE_ID_PATTERN =
+  /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i
+
+/**
+ * 고객에게 "찾을 수 없음"으로 안내해야 하는 오류인지 판별합니다.
+ * 견적서가 아닌 페이지의 ID도 고객 입장에서는 없는 견적서입니다.
+ * Notion 장애나 권한 오류는 링크 문제로 안내하면 안 되므로 포함하지 않습니다.
+ */
+export function isInvoiceNotFoundError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    (error.message === ERROR_MESSAGES.INVOICE_NOT_FOUND ||
+      error.message === ERROR_MESSAGES.INVALID_INVOICE_DATA)
+  )
+}
+
 /**
  * 견적서 검색 필터 인터페이스
  */
@@ -207,6 +224,11 @@ const getCachedInvoiceFromNotion =
  * ```
  */
 export async function getOptimizedInvoice(pageId: string): Promise<Invoice> {
+  // 형식이 틀린 ID는 존재할 수 없으므로 Notion 호출과 재시도를 생략한다
+  if (!NOTION_PAGE_ID_PATTERN.test(pageId)) {
+    throw new Error(ERROR_MESSAGES.INVOICE_NOT_FOUND)
+  }
+
   return getInvoiceWithDedup(pageId, getCachedInvoiceFromNotion)
 }
 
